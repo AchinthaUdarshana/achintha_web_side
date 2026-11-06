@@ -1,0 +1,739 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UNIVERSE X | 3D Solar System</title>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+  }
+}
+</script>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  overflow:hidden;background:#02040b;color:white;
+  font-family:Arial,sans-serif
+}
+canvas{display:block}
+
+#navbar{
+  position:fixed;top:0;left:0;width:100%;height:68px;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 25px;z-index:10;
+  background:rgba(3,10,20,.8);
+  border-bottom:1px solid rgba(0,255,200,.2);
+  backdrop-filter:blur(15px)
+}
+.logo{
+  font-size:23px;font-weight:900;letter-spacing:3px;
+  color:#00ffd0;text-shadow:0 0 15px #00ffd0
+}
+.nav-right{display:flex;gap:10px;align-items:center}
+.nav-btn{
+  padding:10px 16px;border:1px solid #00cba8;
+  border-radius:8px;background:rgba(0,255,200,.08);
+  color:#00ffd0;cursor:pointer;font-weight:bold
+}
+.nav-btn:hover{background:#00cba8;color:#00110e}
+
+#sidebar{
+  position:fixed;left:18px;top:90px;width:220px;
+  max-height:calc(100vh - 110px);overflow:auto;
+  padding:17px;border:1px solid rgba(0,255,200,.25);
+  background:rgba(4,13,25,.86);backdrop-filter:blur(12px);
+  border-radius:13px;z-index:5
+}
+.panel-title{
+  color:#00ffd0;font-size:13px;letter-spacing:2px;
+  margin-bottom:13px
+}
+.planet-item,.moon-item{
+  padding:10px;margin:5px 0;border-radius:7px;
+  background:rgba(255,255,255,.045);cursor:pointer;
+  font-size:13px;border:1px solid transparent
+}
+.planet-item:hover,.moon-item:hover{
+  border-color:#00ffd0;background:rgba(0,255,200,.1)
+}
+
+#moonDetails{
+  display:none;position:fixed;left:255px;top:90px;
+  width:245px;padding:17px;background:rgba(3,15,27,.92);
+  border:1px solid rgba(0,255,200,.35);
+  border-radius:13px;z-index:6;backdrop-filter:blur(14px)
+}
+#moonDetails h3{color:#00ffd0;margin-bottom:12px}
+.detail{font-size:12px;color:#a9c6cf;margin:9px 0;line-height:1.5}
+.detail b{color:white}
+.close{
+  float:right;color:#00ffd0;cursor:pointer;font-size:20px
+}
+
+#search{
+  position:fixed;right:20px;top:90px;z-index:5;
+  width:190px;padding:11px;border-radius:8px;
+  border:1px solid #00cba8;background:rgba(0,10,20,.85);
+  color:white;outline:none
+}
+#hint{
+  position:fixed;bottom:22px;left:50%;
+  transform:translateX(-50%);
+  padding:10px 18px;border-radius:20px;
+  background:rgba(0,20,25,.8);color:#a8fff0;
+  font-size:12px;border:1px solid rgba(0,255,200,.25);
+  z-index:4;white-space:nowrap
+}
+
+/* DEVELOPER PROFILE */
+#profileModal{
+  display:none;position:fixed;inset:0;z-index:100;
+  background:rgba(0,0,0,.82);backdrop-filter:blur(12px);
+  align-items:center;justify-content:center;padding:15px
+}
+.profile-card{
+  width:390px;max-width:100%;position:relative;
+  padding:30px 25px;text-align:center;border-radius:22px;
+  background:linear-gradient(145deg,#061b25,#07101d,#092a2a);
+  border:1px solid rgba(0,255,200,.5);
+  box-shadow:0 0 45px rgba(0,255,200,.18);
+  animation:profileOpen .35s ease
+}
+@keyframes profileOpen{
+  from{opacity:0;transform:translateY(20px) scale(.96)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+#profileClose{
+  position:absolute;top:12px;right:19px;
+  font-size:27px;color:#00ffd0;cursor:pointer
+}
+.developer-badge{
+  display:inline-block;padding:7px 13px;
+  border:1px solid #00ffd0;border-radius:30px;
+  color:#00ffd0;font-size:10px;letter-spacing:2px;
+  margin-bottom:20px
+}
+.profile-photo{
+  width:125px;height:125px;object-fit:cover;
+  object-position:center;border-radius:50%;
+  border:3px solid #00ffd0;
+  box-shadow:0 0 25px rgba(0,255,200,.4);
+  background:#102a35
+}
+.profile-card h2{
+  color:#00ffd0;font-size:21px;margin-top:18px;
+  line-height:1.4
+}
+.profile-role{
+  color:#b6fff1;font-size:11px;
+  letter-spacing:1.5px;margin-top:9px
+}
+.profile-divider{
+  width:65px;height:2px;background:#00ffd0;
+  margin:20px auto;box-shadow:0 0 12px #00ffd0
+}
+.profile-about{
+  color:#b6cbd2;font-size:13px;
+  line-height:1.8;margin-bottom:20px
+}
+.profile-project{
+  padding:15px;border:1px solid rgba(0,255,200,.25);
+  border-radius:12px;background:rgba(0,255,200,.05);
+  display:flex;flex-direction:column;gap:7px
+}
+.profile-project span{
+  font-size:10px;color:#8daeb5;letter-spacing:2px
+}
+.profile-project strong{
+  font-size:20px;color:#00ffd0;letter-spacing:3px
+}
+.profile-project small{
+  font-size:9px;color:#9bb9bd;letter-spacing:1px
+}
+.profile-email{
+  margin-top:20px;display:flex;justify-content:center;
+  align-items:center;gap:8px;flex-wrap:wrap;font-size:12px
+}
+.profile-email span{color:#00ffd0}
+.profile-email a{
+  color:#b8fff2;text-decoration:none;overflow-wrap:anywhere
+}
+.profile-email a:hover{color:#00ffd0}
+.profile-footer{
+  margin-top:22px;color:#00ffd0;
+  font-size:9px;letter-spacing:2px
+}
+#loading{
+  position:fixed;inset:0;z-index:200;background:#02040b;
+  display:flex;align-items:center;justify-content:center;
+  color:#00ffd0;font-size:22px;letter-spacing:4px
+}
+@media(max-width:650px){
+  #navbar{padding:0 10px}
+  .logo{font-size:16px}
+  .nav-btn{padding:8px;font-size:10px}
+  #sidebar{width:145px;left:8px;padding:10px}
+  #moonDetails{left:160px;width:190px;padding:10px}
+  #search{right:8px;width:145px;top:75px}
+  #hint{font-size:10px}
+}
+</style>
+</head>
+
+<body>
+
+<div id="loading">UNIVERSE X</div>
+
+<nav id="navbar">
+  <div class="logo">UNIVERSE X</div>
+  <div class="nav-right">
+    <button class="nav-btn" id="homeBtn">⌂ HOME</button>
+    <button class="nav-btn" id="profileBtn">👤 PROFILE</button>
+  </div>
+</nav>
+
+<aside id="sidebar">
+  <div class="panel-title">SOLAR SYSTEM</div>
+  <div id="planetList"></div>
+
+  <div id="moonList" style="display:none">
+    <div class="panel-title" style="margin-top:18px">PLANET MOONS</div>
+    <div id="moonItems"></div>
+  </div>
+</aside>
+
+<div id="moonDetails">
+  <span class="close" id="closeDetails">×</span>
+  <h3 id="detailName">Moon Details</h3>
+  <div class="detail"><b>Parent Planet:</b> <span id="detailParent">-</span></div>
+  <div class="detail"><b>Type:</b> <span id="detailType">-</span></div>
+  <div class="detail"><b>Model Size:</b> <span id="detailSize">-</span></div>
+  <div class="detail"><b>Orbit Distance:</b> <span id="detailOrbit">-</span></div>
+  <div class="detail"><b>Classification:</b> <span id="detailClass">-</span></div>
+  <div class="detail" id="detailDescription"></div>
+</div>
+
+<input id="search" placeholder="Search planet...">
+<div id="hint">SELECT A PLANET • EXPLORE THE UNIVERSE</div>
+
+<!-- ACHINTHA'S DEVELOPER PROFILE -->
+<div id="profileModal">
+  <div class="profile-card">
+    <span id="profileClose">×</span>
+
+    <div class="developer-badge">✦ OFFICIAL DEVELOPER ✦</div>
+
+    <img
+      src="C:\Users\Lapmart.lk\Downloads\New folder\Screenshot 2026-11-06 162653.png"
+      class="profile-photo"
+      alt="Achintha Udarshana Dissanayake"
+    >
+
+    <h2>Achintha Udarshana Dissanayake</h2>
+
+    <div class="profile-role">
+      FOUNDER & DEVELOPER OF UNIVERSE X
+    </div>
+
+    <div class="profile-divider"></div>
+
+    <div class="profile-about">
+      Hello! I'm Achintha Udarshana Dissanayake.
+
+      I am the creator and developer of UNIVERSE X.
+      This entire project was designed and developed by me.
+
+      Welcome to my 3D Solar System exploration experience.
+    </div>
+
+    <div class="profile-project">
+      <span>MY PROJECT</span>
+      <strong>UNIVERSE X</strong>
+      <small>3D SOLAR SYSTEM EXPERIENCE</small>
+    </div>
+
+    <div class="profile-email">
+      <span>✉</span>
+      <a href="mailto:achinthaudarshana2009031@gmail.com">
+        achinthaudarshana2009031@gmail.com
+      </a>
+    </div>
+
+    <div class="profile-footer">
+      DESIGNED & DEVELOPED BY ACHINTHA
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x02040b);
+
+const camera = new THREE.PerspectiveCamera(
+  60, window.innerWidth/window.innerHeight, 0.1, 2000
+);
+camera.position.set(0,35,85);
+
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(window.innerWidth,window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,1.6));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.25;
+document.body.appendChild(renderer.domElement);
+
+scene.add(new THREE.AmbientLight(0xffffff,1.2));
+
+const sunLight = new THREE.PointLight(0xffffff,3,500);
+scene.add(sunLight);
+
+// SUN
+const sun = new THREE.Mesh(
+  new THREE.SphereGeometry(5,48,48),
+  new THREE.MeshBasicMaterial({color:0xffb52e})
+);
+scene.add(sun);
+
+const sunGlow = new THREE.Mesh(
+  new THREE.SphereGeometry(6.3,32,32),
+  new THREE.MeshBasicMaterial({
+    color:0xff7b18,transparent:true,opacity:.13,
+    side:THREE.BackSide
+  })
+);
+sun.add(sunGlow);
+
+// 5000 STARS
+const starGeometry = new THREE.BufferGeometry();
+const starPositions = [];
+
+for(let i=0;i<5000;i++){
+  starPositions.push(
+    (Math.random()-.5)*1000,
+    (Math.random()-.5)*700,
+    (Math.random()-.5)*1000
+  );
+}
+
+starGeometry.setAttribute(
+  'position',
+  new THREE.Float32BufferAttribute(starPositions,3)
+);
+
+const stars = new THREE.Points(
+  starGeometry,
+  new THREE.PointsMaterial({
+    color:0xffffff,size:0.65,transparent:true,opacity:.85
+  })
+);
+scene.add(stars);
+
+// PLANETS
+const planetData = [
+  {name:'Mercury',size:.8,distance:9,color:0xaaa49a,speed:.018},
+  {name:'Venus',size:1.35,distance:14,color:0xe6ad72,speed:.013},
+  {name:'Earth',size:1.5,distance:20,color:0x287bd0,speed:.01},
+  {name:'Mars',size:1.1,distance:26,color:0xc65b36,speed:.008},
+  {name:'Jupiter',size:3.7,distance:37,color:0xd6a16e,speed:.005},
+  {name:'Saturn',size:3.1,distance:49,color:0xd7c18e,speed:.0035},
+  {name:'Uranus',size:2.1,distance:60,color:0x76d6d6,speed:.0025},
+  {name:'Neptune',size:2,distance:71,color:0x315de0,speed:.002}
+];
+
+const planets = [];
+let selectedPlanet = null;
+let selectedMoon = null;
+
+const cameraTarget = new THREE.Vector3(0,0,0);
+const desiredCamera = new THREE.Vector3(0,35,85);
+const cameraLook = new THREE.Vector3(0,0,0);
+
+function makeOrbit(radius){
+  const curve = new THREE.EllipseCurve(
+    0,0,radius,radius,0,Math.PI*2,false,0
+  );
+  const points = curve.getPoints(160).map(
+    p=>new THREE.Vector3(p.x,0,p.y)
+  );
+
+  const geometry = new THREE.BufferGeometry().setFromPoints(points);
+  const line = new THREE.LineLoop(
+    geometry,
+    new THREE.LineBasicMaterial({
+      color:0x31565b,transparent:true,opacity:.4
+    })
+  );
+  scene.add(line);
+}
+
+function createPlanet(data){
+  const group = new THREE.Group();
+  scene.add(group);
+
+  const geometry = new THREE.SphereGeometry(data.size,48,48);
+  const material = new THREE.MeshStandardMaterial({
+    color:data.color,roughness:.8,metalness:.05
+  });
+
+  const mesh = new THREE.Mesh(geometry,material);
+  mesh.userData = {kind:'planet',name:data.name};
+  group.add(mesh);
+
+  const surfaceDetail = new THREE.Mesh(
+    new THREE.SphereGeometry(data.size*1.006,32,32),
+    new THREE.MeshBasicMaterial({
+      color:0xffffff,transparent:true,opacity:.035,
+      wireframe:true
+    })
+  );
+  mesh.add(surfaceDetail);
+
+  if(data.name==='Saturn'){
+    const ring = new THREE.Mesh(
+      new THREE.RingGeometry(data.size*1.35,data.size*2.1,96),
+      new THREE.MeshStandardMaterial({
+        color:0xcbb68e,side:THREE.DoubleSide,
+        transparent:true,opacity:.8
+      })
+    );
+    ring.rotation.x=Math.PI/2.35;
+    mesh.add(ring);
+  }
+
+  makeOrbit(data.distance);
+
+  planets.push({
+    ...data,group,mesh,
+    angle:Math.random()*Math.PI*2,
+    moons:[]
+  });
+}
+
+planetData.forEach(createPlanet);
+
+// MOONS
+const moonDefinitions = {
+  Earth:[
+    ['Moon',.42,3.5,0xb8b8b8,'Natural satellite',
+    'Earth’s natural satellite.']
+  ],
+  Jupiter:[
+    ['Io',.48,5.1,0xd9b75e,'Galilean moon',
+    'A volcanic moon of Jupiter.'],
+    ['Europa',.39,6.2,0xc9c0a5,'Galilean moon',
+    'An icy moon of Jupiter.'],
+    ['Ganymede',.65,7.6,0x99938b,'Galilean moon',
+    'The largest known moon in the Solar System.'],
+    ['Callisto',.56,9.0,0x716d69,'Galilean moon',
+    'A heavily cratered moon of Jupiter.']
+  ]
+};
+
+function createMoon(planet,definition,index){
+  const [name,size,orbit,color,type,description]=definition;
+
+  const pivot = new THREE.Group();
+  planet.mesh.add(pivot);
+
+  const mesh = new THREE.Mesh(
+    new THREE.SphereGeometry(size,24,24),
+    new THREE.MeshStandardMaterial({color,roughness:1})
+  );
+
+  mesh.position.set(orbit,0,0);
+  mesh.userData={
+    kind:'moon',name,parent:planet.name,
+    size,orbit,type,description
+  };
+  pivot.add(mesh);
+
+  planet.moons.push({
+    name,size,orbit,color,type,description,
+    pivot,mesh,angle:index*1.7
+  });
+}
+
+function createExtraJupiterObjects(planet){
+  // 111 visual placeholders, not confirmed named moons.
+  for(let i=0;i<111;i++){
+    const angle=i*2.399;
+    const orbit=10.5+(i%8)*.48;
+    const size=.10+(i%4)*.025;
+
+    const pivot=new THREE.Group();
+    planet.mesh.add(pivot);
+
+    const mesh=new THREE.Mesh(
+      new THREE.SphereGeometry(size,10,10),
+      new THREE.MeshStandardMaterial({color:0xaaa9a5})
+    );
+
+    mesh.position.set(orbit,0,0);
+    mesh.userData={
+      kind:'moon',
+      name:'Illustrative Object '+(i+1),
+      parent:'Jupiter',
+      size,orbit,
+      type:'Illustrative object',
+      description:'A visual placeholder for this 3D model, not a confirmed named moon.'
+    };
+
+    pivot.rotation.y=angle;
+    pivot.add(mesh);
+
+    planet.moons.push({
+      name:'Illustrative Object '+(i+1),
+      size,orbit,pivot,mesh,angle,
+      type:'Illustrative object',
+      description:'A visual placeholder for this 3D model, not a confirmed named moon.'
+    });
+  }
+}
+
+planets.forEach(planet=>{
+  const definitions=moonDefinitions[planet.name]||[];
+  definitions.forEach((d,i)=>createMoon(planet,d,i));
+
+  if(planet.name==='Jupiter'){
+    createExtraJupiterObjects(planet);
+  }
+});
+
+// PLANET SIDEBAR
+const planetList=document.getElementById('planetList');
+
+planetData.forEach(p=>{
+  const item=document.createElement('div');
+  item.className='planet-item';
+  item.textContent='◉  '+p.name;
+  item.onclick=()=>selectPlanet(p.name);
+  planetList.appendChild(item);
+});
+
+const moonList=document.getElementById('moonList');
+const moonItems=document.getElementById('moonItems');
+
+function hideAllMoons(){
+  planets.forEach(p=>{
+    p.moons.forEach(m=>m.mesh.visible=false);
+  });
+}
+
+function showAll(){
+  selectedPlanet=null;
+  selectedMoon=null;
+
+  planets.forEach(p=>{
+    p.group.visible=true;
+    p.mesh.visible=true;
+  });
+
+  hideAllMoons();
+
+  moonList.style.display='none';
+  document.getElementById('moonDetails').style.display='none';
+
+  desiredCamera.set(0,35,85);
+  cameraTarget.set(0,0,0);
+
+  document.getElementById('hint').textContent=
+    'SELECT A PLANET • EXPLORE THE UNIVERSE';
+}
+
+function selectPlanet(name){
+  const planet=planets.find(p=>p.name===name);
+  if(!planet)return;
+
+  selectedPlanet=planet;
+  selectedMoon=null;
+
+  planets.forEach(p=>{
+    p.group.visible=p===planet;
+  });
+
+  hideAllMoons();
+
+  planet.moons.forEach(m=>{
+    m.mesh.visible=true;
+  });
+
+  moonList.style.display='block';
+  moonItems.innerHTML='';
+
+  planet.moons.forEach(m=>{
+    const el=document.createElement('div');
+    el.className='moon-item';
+    el.textContent='● '+m.name;
+    el.onclick=()=>selectMoon(m);
+    moonItems.appendChild(el);
+  });
+
+  document.getElementById('moonDetails').style.display='none';
+
+  const world=planet.mesh.getWorldPosition(new THREE.Vector3());
+  cameraTarget.copy(world);
+  desiredCamera.set(
+    planet.group.position.x,
+    planet.size*4+4,
+    planet.group.position.z+planet.size*7+8
+  );
+
+  document.getElementById('hint').textContent=
+    planet.name.toUpperCase()+' SELECTED • SELECT A MOON';
+}
+
+function selectMoon(moon){
+  selectedMoon=moon;
+
+  const world=moon.mesh.getWorldPosition(new THREE.Vector3());
+  cameraTarget.copy(world);
+
+  desiredCamera.set(
+    world.x+moon.size*2,
+    world.y+moon.size*2+1,
+    world.z+moon.size*5+5
+  );
+
+  document.getElementById('detailName').textContent=moon.name;
+  document.getElementById('detailParent').textContent=selectedPlanet.name;
+  document.getElementById('detailType').textContent=moon.type;
+  document.getElementById('detailSize').textContent=moon.size+' model units';
+  document.getElementById('detailOrbit').textContent=moon.orbit+' model units';
+  document.getElementById('detailClass').textContent=moon.type;
+  document.getElementById('detailDescription').textContent=moon.description;
+
+  document.getElementById('moonDetails').style.display='block';
+  document.getElementById('hint').textContent=
+    'ZOOMED IN: '+moon.name.toUpperCase();
+}
+
+document.getElementById('closeDetails').onclick=()=>{
+  document.getElementById('moonDetails').style.display='none';
+};
+
+document.getElementById('homeBtn').onclick=showAll;
+
+// SEARCH
+document.getElementById('search').addEventListener('input',e=>{
+  const value=e.target.value.toLowerCase();
+
+  document.querySelectorAll('.planet-item').forEach(el=>{
+    el.style.display=el.textContent.toLowerCase().includes(value)
+      ?'block':'none';
+  });
+});
+
+// DEVELOPER PROFILE
+const profileModal=document.getElementById('profileModal');
+
+document.getElementById('profileBtn').onclick=()=>{
+  profileModal.style.display='flex';
+};
+
+document.getElementById('profileClose').onclick=()=>{
+  profileModal.style.display='none';
+};
+
+profileModal.addEventListener('click',e=>{
+  if(e.target===profileModal){
+    profileModal.style.display='none';
+  }
+});
+
+// RAYCASTING: CLICK PLANETS AND MOONS
+const raycaster=new THREE.Raycaster();
+const pointer=new THREE.Vector2();
+
+renderer.domElement.addEventListener('click',event=>{
+  pointer.x=(event.clientX/window.innerWidth)*2-1;
+  pointer.y=-(event.clientY/window.innerHeight)*2+1;
+
+  raycaster.setFromCamera(pointer,camera);
+
+  const visibleMeshes=[];
+
+  planets.forEach(p=>{
+    if(p.group.visible){
+      visibleMeshes.push(p.mesh);
+      p.moons.forEach(m=>{
+        if(m.mesh.visible)visibleMeshes.push(m.mesh);
+      });
+    }
+  });
+
+  const hits=raycaster.intersectObjects(visibleMeshes,true);
+  if(!hits.length)return;
+
+  let obj=hits[0].object;
+
+  while(obj && !obj.userData.kind){
+    obj=obj.parent;
+  }
+
+  if(!obj)return;
+
+  if(obj.userData.kind==='planet'){
+    selectPlanet(obj.userData.name);
+  }else if(obj.userData.kind==='moon' && selectedPlanet){
+    const moon=selectedPlanet.moons.find(m=>m.mesh===obj);
+    if(moon)selectMoon(moon);
+  }
+});
+
+// ANIMATION
+function animate(){
+  requestAnimationFrame(animate);
+
+  planets.forEach(p=>{
+    if(p.group.visible){
+      if(!selectedPlanet){
+        p.angle+=p.speed*.12;
+        p.group.position.set(
+          Math.cos(p.angle)*p.distance,
+          0,
+          Math.sin(p.angle)*p.distance
+        );
+      }
+
+      p.mesh.rotation.y+=.002;
+    }
+
+    p.moons.forEach(m=>{
+      if(m.mesh.visible){
+        m.pivot.rotation.y+=.006;
+      }
+    });
+  });
+
+  stars.rotation.y+=.000025;
+  sun.rotation.y+=.001;
+
+  camera.position.lerp(desiredCamera,.035);
+  camera.lookAt(cameraLook.lerp(cameraTarget,.04));
+
+  renderer.render(scene,camera);
+}
+
+animate();
+
+// HOME INITIAL STATE
+showAll();
+
+// RESIZE
+window.addEventListener('resize',()=>{
+  camera.aspect=window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth,window.innerHeight);
+});
+
+document.getElementById('loading').style.display='none';
+</script>
+
+</body>
+</html>
